@@ -53,7 +53,7 @@ import { E_IDENTIFIER_ALREADY_DEFINED } from './errors.js'
 export class EnvParser {
   #envContents: string
   #preferProcessEnv: boolean = true
-  static #identifiers: Record<string, (value: string) => Promise<string> | string> = {}
+  static #identifiers: Record<string, (value: string, key: string) => Promise<string> | string> = {}
 
   constructor(envContents: string, options?: { ignoreProcessEnv: boolean }) {
     if (options?.ignoreProcessEnv) {
@@ -67,7 +67,10 @@ export class EnvParser {
    * Define an identifier for any environment value. The callback is invoked
    * when the value match the identifier to modify its interpolation.
    */
-  static identifier(name: string, callback: (value: string) => Promise<string> | string): void {
+  static identifier(
+    name: string,
+    callback: (value: string, key: string) => Promise<string> | string
+  ): void {
     if (this.#identifiers[name]) {
       throw new E_IDENTIFIER_ALREADY_DEFINED([name])
     }
@@ -207,7 +210,8 @@ export class EnvParser {
         for (const identifier of identifiers) {
           if (value.startsWith(`${identifier}:`)) {
             result[key] = await EnvParser.#identifiers[identifier](
-              value.substring(identifier.length + 1)
+              value.substring(identifier.length + 1),
+              key
             )
 
             continue $keyLoop
